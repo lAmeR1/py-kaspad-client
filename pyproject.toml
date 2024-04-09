@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "kaspad_client"
+version = "1.0.4"
+description = "This is a simple gRPC client for a python application which communiactes with the Kaspa node called KASPAD. Note: This module is created for the RUST version and might be not compatible with the go written node."
+authors = ["lAmeR1 <lamer1@github.com>"]
+readme = "README.md"
+homepage = "https://kaspa.org/"
+repository = 'https://github.com/lAmeR1/py-kaspad-client'
+keywords = ['kaspa', 'kaspad', 'blockchain', 'blockdag', 'kas', 'grpc']
+
+[tool.poetry.dependencies]
+python = "^3.12"
+grpcio = "^1.62.1"
+protobuf = "4.21.6"
+
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+grpcio-tools = "^1.62.1"
+pytest-asyncio = "^0.23.6"
+ruff = "^0.3.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
