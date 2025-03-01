@@ -46,7 +46,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: 3.x
+          python-version: 3.12
 
       - name: Install Ruff and dependencies
         run: |
@@ -55,7 +55,9 @@ jobs:
           poetry install --with=dev
 
       - name: Run Ruff
-        run: poetry run ruff check
+        run: |
+          poetry run ruff check
+          poetry run ruff format --check
 
   build_package:
     name: Build Python Package

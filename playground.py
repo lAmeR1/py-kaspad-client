@@ -18,11 +18,15 @@ async def main():
     # the decorator registers an async callback function and requests the notification automatically
     @kaspad_client.notify_virtual_daa_score_changed
     async def received_new_daa_score(c):
-        print(f"The DAA score is: {c['virtualDaaScoreChangedNotification']['virtualDaaScore']}")
+        print(
+            f"The DAA score is: {c['virtualDaaScoreChangedNotification']['virtualDaaScore']}"
+        )
 
     @kaspad_client.notify_block_added
     async def received_new_block(c):
-        print(f"New Kaspa block: {c['blockAddedNotification']['block']['verboseData']['hash']}")
+        print(
+            f"New Kaspa block: {c['blockAddedNotification']['block']['verboseData']['hash']}"
+        )
 
     # wait to see some notifcations :-)
     await asyncio.sleep(60)
