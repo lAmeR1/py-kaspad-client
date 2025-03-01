@@ -22,7 +22,7 @@ class KaspadStream(object):
         self.__kaspad_port = kaspad_port
 
         self.__command_queue = asyncio.queues.Queue()
-        self.__read_queue = asyncio.queues.Queue()
+        self.__read_queue = {}
 
         self.__channel = grpc.aio.insecure_channel(
             f"{kaspad_host}:{kaspad_port}",
@@ -38,31 +38,29 @@ class KaspadStream(object):
 
         self.__callback_functions = {}
 
-    async def read(self, wait_for_response_key=None):
-        while True:
-            response = await self.__read_queue.get()
-            if wait_for_response_key is None or wait_for_response_key in response:
-                return response
+    async def read(self, msg_id: int):
+        return await self.__read_queue[msg_id].get()
 
-    async def send(self, command: str, params: dict = None):
-        await self.__command_queue.put((command, params))
+    async def send(self, command: str, params: dict = None, id: int | None = None):
+        self.__read_queue[id] = asyncio.queues.Queue()
+        await self.__command_queue.put((id, command, params))
 
     async def __loop(self):
         async for resp in self.__stub.MessageStream(self.yield_cmd()):
-            await self.__read_queue.put(
-                msg := json_format.MessageToDict(
-                    resp, including_default_value_fields=True
-                )
-            )
+            msg = json_format.MessageToDict(resp, including_default_value_fields=True)
+            if resp.id in self.__read_queue:
+                await self.__read_queue[resp.id].put(msg)
+
             _logger.debug(f"recv: {msg}")
             for callback in self.__callback_functions.get(next(iter(msg)), []):
                 await callback(msg)
 
     async def yield_cmd(self):
         while True:
-            (cmd, params) = await self.__command_queue.get()
+            (id, cmd, params) = await self.__command_queue.get()
             _logger.debug(f"send: {cmd}")
             msg = KaspadRequest()
+            msg.id = id
             msg2 = getattr(msg, cmd)
             payload = params
 

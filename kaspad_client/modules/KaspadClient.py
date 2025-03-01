@@ -18,11 +18,25 @@ class KaspadClient(object):
         self.p2p_id = None
 
         self.kaspa_stream = KaspadStream(self.kaspad_host, self.kaspad_port)
+        self.__current_id = 1
 
-    async def request(self, command, params=None, wait_for_response_key=None):
-        await self.kaspa_stream.send(command, params)
-        if wait_for_response_key:
-            return await self.kaspa_stream.read(wait_for_response_key)
+    @property
+    def next_id(self):
+        if self.__current_id < 4294967295:  # 2^32 -1
+            self.__current_id += 1
+        else:
+            self.__current_id = 1
+
+        return self.__current_id
+
+    async def request(
+        self, command: str, params: dict = None, wait_for_response: bool = False
+    ):
+        msg_id = self.next_id if wait_for_response else None
+        await self.kaspa_stream.send(command, params, msg_id)
+
+        if wait_for_response:
+            return await self.kaspa_stream.read(msg_id)
 
     # async def notify(self, command, params, callback):
     #     t = KaspadThread(self.kaspad_host, self.kaspad_port, async_thread=True)
@@ -86,7 +100,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getPeerAddressesRequest", wait_for_response_key="getPeerAddressesResponse"
+            "getPeerAddressesRequest", wait_for_response="getPeerAddressesResponse"
         )
 
     async def get_sink(self):
@@ -95,9 +109,7 @@ class KaspadClient(object):
         selected parent.
         :return:
         """
-        return await self.request(
-            "getSinkRequest", wait_for_response_key="getSinkResponse"
-        )
+        return await self.request("getSinkRequest", wait_for_response="getSinkResponse")
 
     async def get_mempool_entry(
         self, tx_id: str, include_orphan_pool: bool, filter_transaction_pool: bool
@@ -117,7 +129,7 @@ class KaspadClient(object):
                 "includeOrphanPool": include_orphan_pool,
                 "filterTransactionPool": filter_transaction_pool,
             },
-            wait_for_response_key="getMempoolEntryResponse",
+            wait_for_response="getMempoolEntryResponse",
         )
 
     async def get_mempool_entries(
@@ -136,7 +148,7 @@ class KaspadClient(object):
                 "includeOrphanPool": include_orphan_pool,
                 "filterTransactionPool": filter_transaction_pool,
             },
-            wait_for_response_key="getMempoolEntriesResponse",
+            wait_for_response="getMempoolEntriesResponse",
         )
 
     async def get_connected_peer_info(self):
@@ -147,7 +159,7 @@ class KaspadClient(object):
         """
         return await self.request(
             "getConnectedPeerInfoRequest",
-            wait_for_response_key="getConnectedPeerInfoResponse",
+            wait_for_response="getConnectedPeerInfoResponse",
         )
 
     async def add_peer(self, address: str, is_permanent: bool):
@@ -161,7 +173,7 @@ class KaspadClient(object):
         return await self.request(
             "addPeerRequest",
             {"address": address, "isPermanent": is_permanent},
-            wait_for_response_key="addPeerResponse",
+            wait_for_response="addPeerResponse",
         )
 
     async def submit_transaction(self, transaction: dict, allow_orphan: bool = False):
@@ -174,7 +186,7 @@ class KaspadClient(object):
         return await self.request(
             "submitTransactionRequest",
             {"transaction": transaction, "allowOrphan": allow_orphan},
-            wait_for_response_key="submitTransactionResponse",
+            wait_for_response="submitTransactionResponse",
         )
 
     async def submit_transaction_replacement(self, transaction: dict):
@@ -186,7 +198,7 @@ class KaspadClient(object):
         return await self.request(
             "submitTransactionReplacementRequest",
             {"transaction": transaction},
-            wait_for_response_key="submitTransactionReplacementResponse",
+            wait_for_response="submitTransactionReplacementResponse",
         )
 
     async def get_block(self, hash: str, include_transactions: bool):
@@ -202,7 +214,7 @@ class KaspadClient(object):
                 "hash": hash,
                 "includeTransactions": include_transactions,
             },
-            wait_for_response_key="getBlockResponse",
+            wait_for_response="getBlockResponse",
         )
 
     async def get_block_color(self, hash: str):
@@ -217,7 +229,7 @@ class KaspadClient(object):
             {
                 "hash": hash,
             },
-            wait_for_response_key="getCurrentBlockColorResponse",
+            wait_for_response="getCurrentBlockColorResponse",
         )
 
     async def get_subnetwork(self, subnetwork_id: str):
@@ -229,7 +241,7 @@ class KaspadClient(object):
         return await self.request(
             "getSubnetworkRequest",
             {"subnetworkId": subnetwork_id},
-            wait_for_response_key="getSubnetworkResponse",
+            wait_for_response="getSubnetworkResponse",
         )
 
     async def get_virtual_chain_from_block(
@@ -248,7 +260,7 @@ class KaspadClient(object):
                 "startHash": start_hash,
                 "includeAcceptedTransactionIds": include_accepted_transaction_ids,
             },
-            wait_for_response_key="getVirtualChainFromBlockResponse",
+            wait_for_response="getVirtualChainFromBlockResponse",
         )
 
     async def get_blocks(
@@ -269,7 +281,7 @@ class KaspadClient(object):
                 "includeBlocks": include_blocks,
                 "includeTransactions": include_transactions,
             },
-            wait_for_response_key="getBlocksResponse",
+            wait_for_response="getBlocksResponse",
         )
 
     async def get_block_count(self):
@@ -279,7 +291,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getBlockCountRequest", wait_for_response_key="getBlockCountResponse"
+            "getBlockCountRequest", wait_for_response="getBlockCountResponse"
         )
 
     async def get_headers(self, start_hash: str, limit: int, is_ascending: bool):
@@ -294,7 +306,7 @@ class KaspadClient(object):
         return await self.request(
             "getHeadersRequest",
             {"startHash": start_hash, "limit": limit, "isAscending": is_ascending},
-            wait_for_response_key="getHeadersResponse",
+            wait_for_response="getHeadersResponse",
         )
 
     async def get_utxos_by_addresses(self, addresses: list[str]):
@@ -308,7 +320,7 @@ class KaspadClient(object):
         return await self.request(
             "getUtxosByAddressesRequest",
             {"addresses": addresses},
-            wait_for_response_key="getUtxosByAddressesResponse",
+            wait_for_response="getUtxosByAddressesResponse",
         )
 
     async def get_balance_by_address(self, address: str):
@@ -320,7 +332,7 @@ class KaspadClient(object):
         return await self.request(
             "getBalanceByAddressRequest",
             {"address": address},
-            wait_for_response_key="getBalanceByAddressResponse",
+            wait_for_response="getBalanceByAddressResponse",
         )
 
     async def get_balances_by_addresses(self, addresses: list[str]):
@@ -332,7 +344,7 @@ class KaspadClient(object):
         return await self.request(
             "getBalancesByAddressesRequest",
             {"addresses": addresses},
-            wait_for_response_key="getBalancesByAddressesResponse",
+            wait_for_response="getBalancesByAddressesResponse",
         )
 
     async def get_sink_blue_score(self):
@@ -342,7 +354,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getSinkBlueScoreRequest", wait_for_response_key="getSinkBlueScoreResponse"
+            "getSinkBlueScoreRequest", wait_for_response="getSinkBlueScoreResponse"
         )
 
     async def ban(self, ip: str):
@@ -352,7 +364,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "banRequest", {"ip": ip}, wait_for_response_key="banResponse"
+            "banRequest", {"ip": ip}, wait_for_response="banResponse"
         )
 
     async def get_fee_estimate(self):
@@ -364,7 +376,7 @@ class KaspadClient(object):
         :return: The response containing the estimated fee details for transactions.
         """
         return await self.request(
-            "getFeeEstimateRequest", wait_for_response_key="getFeeEstimateResponse"
+            "getFeeEstimateRequest", wait_for_response="getFeeEstimateResponse"
         )
 
     async def get_info(self):
@@ -372,9 +384,7 @@ class KaspadClient(object):
         GetInfoRequestMessage returns info about the node.
         :return:
         """
-        return await self.request(
-            "getInfoRequest", wait_for_response_key="getInfoResponse"
-        )
+        return await self.request("getInfoRequest", wait_for_response="getInfoResponse")
 
     async def get_coin_supply(self):
         """
@@ -382,7 +392,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getCoinSupplyRequest", wait_for_response_key="getCoinSupplyResponse"
+            "getCoinSupplyRequest", wait_for_response="getCoinSupplyResponse"
         )
 
     async def ping(self):
@@ -390,7 +400,7 @@ class KaspadClient(object):
         Pings the node.
         :return:
         """
-        return await self.request("pingRequest", wait_for_response_key="pingResponse")
+        return await self.request("pingRequest", wait_for_response="pingResponse")
 
     async def get_server_info(self):
         """
@@ -398,7 +408,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getServerInfoRequest", wait_for_response_key="getServerInfoResponse"
+            "getServerInfoRequest", wait_for_response="getServerInfoResponse"
         )
 
     async def get_sync_status(self):
@@ -407,7 +417,7 @@ class KaspadClient(object):
         :return:
         """
         return await self.request(
-            "getSyncStatusRequest", wait_for_response_key="getSyncStatusResponse"
+            "getSyncStatusRequest", wait_for_response="getSyncStatusResponse"
         )
 
     async def get_daa_score_timestamp_estimate(self, daa_scores: list[int]):
@@ -418,7 +428,7 @@ class KaspadClient(object):
         """
         return await self.request(
             "getDaaScoreTimestampEstimateRequest",
-            wait_for_response_key="getDaaScoreTimestampEstimateResponse",
+            wait_for_response="getDaaScoreTimestampEstimateResponse",
         )
 
     def notify_block_added(self, f):

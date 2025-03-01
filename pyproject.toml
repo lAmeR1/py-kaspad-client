@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kaspad_client"
-version = "1.0.5"
+version = "1.0.6"
 description = "This is a simple gRPC client for a python application which communiactes with the Kaspa node called KASPAD. Note: This module is created for the RUST version and might be not compatible with the go written node."
 authors = ["lAmeR1 <lamer1@github.com>"]
 readme = "README.md"

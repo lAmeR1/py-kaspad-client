@@ -17,6 +17,18 @@ logging.basicConfig(
 
 
 @pytest.mark.asyncio
+async def test_increasing_id():
+    kaspad_client = KaspadClient(KASPAD_TEST_HOST, KASPAD_TEST_PORT)
+    await kaspad_client.get_block_dag_info()
+    await kaspad_client.get_block_dag_info()
+    await kaspad_client.get_block_dag_info()
+    await kaspad_client.get_block_dag_info()
+    await kaspad_client.get_block_dag_info()
+    await asyncio.sleep(0.5)
+    assert kaspad_client.next_id == 7
+
+
+@pytest.mark.asyncio
 async def test_get_block_dag_info():
     kaspad_client = KaspadClient(KASPAD_TEST_HOST, KASPAD_TEST_PORT)
     resp = await kaspad_client.get_block_dag_info()
