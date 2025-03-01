@@ -12,7 +12,7 @@ KASPAD_TEST_PORT = os.getenv("KASPAD_TEST_PORT") or 16110
 async def test_init():
     kaspad_thread = KaspadStream(KASPAD_TEST_HOST, KASPAD_TEST_PORT)
 
-    await kaspad_thread.send("getBlockDagInfoRequest")
-    response = await kaspad_thread.read("getBlockDagInfoResponse")
+    await kaspad_thread.send("getBlockDagInfoRequest", id=1234)
+    response = await kaspad_thread.read(1234)
 
     assert response.get("getBlockDagInfoResponse").get("networkName") == "kaspa-mainnet"

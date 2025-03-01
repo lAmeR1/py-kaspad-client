@@ -39,7 +39,10 @@ class KaspadStream(object):
         self.__callback_functions = {}
 
     async def read(self, msg_id: int):
-        return await self.__read_queue[msg_id].get()
+        try:
+            return await self.__read_queue[msg_id].get()
+        finally:
+            self.__read_queue.pop(msg_id)
 
     async def send(self, command: str, params: dict = None, id: int | None = None):
         self.__read_queue[id] = asyncio.queues.Queue()
