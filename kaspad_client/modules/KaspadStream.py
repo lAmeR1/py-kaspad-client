@@ -15,21 +15,23 @@ _logger = logging.getLogger(__name__)
 
 # pipenv run python -m grpc_tools.protoc -I./protos --python_out=. --grpc_python_out=. ./protos/rpc.proto ./protos/messages.proto ./protos/p2p.proto
 
+
 class KaspadStream(object):
     def __init__(self, kaspad_host: str, kaspad_port: int = 16110):
-
         self.__kaspad_host = kaspad_host
         self.__kaspad_port = kaspad_port
 
         self.__command_queue = asyncio.queues.Queue()
         self.__read_queue = asyncio.queues.Queue()
 
-        self.__channel = grpc.aio.insecure_channel(f'{kaspad_host}:{kaspad_port}',
-                                                   compression=grpc.Compression.Gzip,
-                                                   options=[
-                                                       ('kaspa_grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
-                                                       ('kaspa_grpc.max_receive_message_length', MAX_MESSAGE_LENGTH),
-                                                   ])
+        self.__channel = grpc.aio.insecure_channel(
+            f"{kaspad_host}:{kaspad_port}",
+            compression=grpc.Compression.Gzip,
+            options=[
+                ("kaspa_grpc.max_send_message_length", MAX_MESSAGE_LENGTH),
+                ("kaspa_grpc.max_receive_message_length", MAX_MESSAGE_LENGTH),
+            ],
+        )
 
         self.__stub = messages_pb2_grpc.RPCStub(self.__channel)
         asyncio.get_running_loop().create_task(self.__loop())
@@ -47,7 +49,11 @@ class KaspadStream(object):
 
     async def __loop(self):
         async for resp in self.__stub.MessageStream(self.yield_cmd()):
-            await self.__read_queue.put(msg := json_format.MessageToDict(resp, including_default_value_fields=True))
+            await self.__read_queue.put(
+                msg := json_format.MessageToDict(
+                    resp, including_default_value_fields=True
+                )
+            )
             _logger.debug(f"recv: {msg}")
             for callback in self.__callback_functions.get(next(iter(msg)), []):
                 await callback(msg)
@@ -70,4 +76,6 @@ class KaspadStream(object):
             yield msg
 
     async def register_callback(self, response, callback):
-        self.__callback_functions[response] = self.__callback_functions.get(response, []) + [callback]
+        self.__callback_functions[response] = self.__callback_functions.get(
+            response, []
+        ) + [callback]

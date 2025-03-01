@@ -14,4 +14,4 @@ async def test_init():
     await kaspad_thread.send("getBlockDagInfoRequest")
     response = await kaspad_thread.read("getBlockDagInfoResponse")
 
-    assert response.get('getBlockDagInfoResponse').get('networkName') == "kaspa-mainnet"
+    assert response.get("getBlockDagInfoResponse").get("networkName") == "kaspa-mainnet"
