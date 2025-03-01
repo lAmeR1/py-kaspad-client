@@ -15,6 +15,7 @@ jobs:
 
     env:
       KASPAD_TEST_HOST: ${{ secrets.KASPAD_TEST_HOST }}
+      KASPAD_TEST_PORT: ${{ secrets.KASPAD_TEST_PORT }}
 
     steps:
       - name: Checkout code
