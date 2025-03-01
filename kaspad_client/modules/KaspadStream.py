@@ -24,17 +24,25 @@ class KaspadStream(object):
         self.__command_queue = asyncio.queues.Queue()
         self.__read_queue = asyncio.queues.Queue()
 
-        self.__channel = grpc.aio.insecure_channel(f'{kaspad_host}:{kaspad_port}',
-                                                   compression=grpc.Compression.Gzip,
-                                                   options=[
-                                                       ('kaspa_grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
-                                                       ('kaspa_grpc.max_receive_message_length', MAX_MESSAGE_LENGTH),
-                                                   ])
-
-        self.__stub = messages_pb2_grpc.RPCStub(self.__channel)
-        asyncio.get_running_loop().create_task(self.__loop())
-
         self.__callback_functions = {}
+        self.reconnect()
+
+    def reconnect(self):
+        try:
+            self.__loop_task.cancel()
+        except Exception:
+            pass
+        self.channel = grpc.aio.insecure_channel(f'{self.__kaspad_host}:{self.__kaspad_port}',
+                                                 compression=grpc.Compression.Gzip,
+                                                 options=[
+                                                     ('kaspa_grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
+                                                     ('kaspa_grpc.max_receive_message_length', MAX_MESSAGE_LENGTH),
+                                                     ('grpc.max_connection_age_ms', 2000)
+                                                 ])
+
+        self.stub = messages_pb2_grpc.RPCStub(self.channel)
+        self.__loop_task = asyncio.get_running_loop().create_task(self.__loop())
+
 
     async def read(self, wait_for_response_key=None):
         while True:
@@ -43,10 +51,11 @@ class KaspadStream(object):
                 return response
 
     async def send(self, command: str, params: dict = None):
+        print(command)
         await self.__command_queue.put((command, params))
 
     async def __loop(self):
-        async for resp in self.__stub.MessageStream(self.yield_cmd()):
+        async for resp in self.stub.MessageStream(self.yield_cmd()):
             await self.__read_queue.put(msg := json_format.MessageToDict(resp, including_default_value_fields=True))
             _logger.debug(f"recv: {msg}")
             for callback in self.__callback_functions.get(next(iter(msg)), []):
